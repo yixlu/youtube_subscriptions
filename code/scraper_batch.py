@@ -7,6 +7,7 @@ import re
 import csv
 import os
 import pandas as pd
+import numpy as np
 
 
 class Spider(object):
@@ -71,7 +72,8 @@ class Spider(object):
         b.append(value)
       title = ['start_date','end_date', 'weekly subscribers', 'weekly views']
       aa = [title]
-      for i in range(len(start_dates)):
+      length = np.min([len(start_dates),len(end_dates),len(a),len(b)])
+      for i in range(length):
         tmp = [start_dates[i], end_dates[i], a[i], b[i]]
         #print(tmp)
         aa.append(tmp)
