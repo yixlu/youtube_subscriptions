@@ -70,7 +70,7 @@ class Spider(object):
       for j in n2:
         value = j[1]
         b.append(value)
-      title = ['start_date','end_date', 'weekly subscribers', 'weekly views']
+      title = ['start_date','end_date', 'weekly_subscribers', 'weekly_views']
       aa = [title]
       length = np.min([len(start_dates),len(end_dates),len(a),len(b)])
       for i in range(length):
@@ -96,10 +96,12 @@ class Spider(object):
         if not os.path.isdir(category_path):
           os.makedirs(category)
         data = self.get_detail(url,name)
+        print(f'{category}_{name} is scraped.')
         # write to csv
-        with open('{}/{}.csv'.format(category,name), 'w', encoding='utf-8-sig') as f:
-          writer = csv.writer(f, lineterminator='\n')
-          writer.writerows(data)
+        if not os.path.exists(category_path+'/'+name+'.csv'):
+          with open('{}/{}.csv'.format(category,name), 'w', encoding='utf-8-sig') as f:
+            writer = csv.writer(f, lineterminator='\n')
+            writer.writerows(data)
 
 
 if __name__ == "__main__":

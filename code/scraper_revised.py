@@ -68,7 +68,7 @@ class Spider(object):
       for j in n2:
         value = j[1]
         b.append(value)
-      title = ['start_date','end_date', 'weekly subscribers', 'weekly views']
+      title = ['start_date','end_date', 'weekly_subscribers', 'weekly_views']
       aa = [title]
       length = np.min([len(start_dates), len(end_dates), len(a), len(b)])
       for i in range(length):
