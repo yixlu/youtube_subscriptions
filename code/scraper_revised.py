@@ -49,7 +49,7 @@ class Spider(object):
       p1 = re.compile(pattern, re.S)
       t1 = re.findall(p1, text)[0].strip()[:-1]
       n1 = re.findall(p1, text)[1].strip()[:-1]
-      p2 = re.compile('\[(\d+?),(\d+?)\]')
+      p2 = re.compile('\[(\d+?),(-?\d+?)\]')
       # weekly subscribers
       t2 = re.findall(p2, t1)
       # weekly views

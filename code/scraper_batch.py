@@ -51,7 +51,7 @@ class Spider(object):
       p1 = re.compile(pattern, re.S)
       t1 = re.findall(p1, text)[0].strip()[:-1]
       n1 = re.findall(p1, text)[1].strip()[:-1]
-      p2 = re.compile('\[(\d+?),(\d+?)\]')
+      p2 = re.compile('\[(\d+?),(-?\d+?)\]')
       # weekly subscribers
       t2 = re.findall(p2, t1)
       # weekly views
@@ -98,10 +98,9 @@ class Spider(object):
         data = self.get_detail(url,name)
         print(f'{category}_{name} is scraped.')
         # write to csv
-        if not os.path.exists(category_path+'/'+name+'.csv'):
-          with open('{}/{}.csv'.format(category,name), 'w', encoding='utf-8-sig') as f:
-            writer = csv.writer(f, lineterminator='\n')
-            writer.writerows(data)
+        with open('{}/{}.csv'.format(category,name), 'w', encoding='utf-8-sig') as f:
+          writer = csv.writer(f, lineterminator='\n')
+          writer.writerows(data)
 
 
 if __name__ == "__main__":
