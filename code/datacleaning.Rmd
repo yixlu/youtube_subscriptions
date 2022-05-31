@@ -1,0 +1,190 @@
+---
+title: "STA260_datacleaning"
+author: "YL"
+date: '2022-05-29'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE)
+```
+
+```{r}
+library(dplyr)
+library(zoo)
+library(ggplot2)
+```
+
+## Data cleaning
+```{r, warning=FALSE}
+## align dates
+setwd('..')
+folder_path = list.dirs(path='./data')[-1]
+# category label for each youtube channel
+category_label = c()
+# outer join all files on start_date
+# initiate empty data frames for weekly subscribers and weekly views
+df_subscribers = data.frame(start_date=character())
+df_views = data.frame(start_date=character())
+# iterate over folders of different categories to gather all the files
+for (folder in folder_path){
+  # category label of the current folder
+  label = tail(unlist(strsplit(folder,split='/',fixed=TRUE)),n=1)
+  # get all the files inside a folder
+  files = list.files(path=folder,pattern="*.csv")
+  for (i in 1:length(files)){
+    file_name=unlist(strsplit(files[i],split='.',fixed=TRUE))[1]
+    new_df=read.csv(paste(folder,files[i],sep='/'))
+    new_df_subscribers = new_df[,c(1,3)]
+    colnames(new_df_subscribers)[2]=file_name
+    df_subscribers = df_subscribers%>%full_join(new_df_subscribers,by=colnames(new_df)[1])
+    new_df_views = new_df[,c(1,4)]
+    colnames(new_df_views)[2]=file_name
+    df_views = df_views%>%full_join(new_df_views,by=colnames(new_df)[1])
+    # add label of the current file to the label vector
+    category_label=c(category_label,label)
+  }}
+
+# sort dataframes on start_date
+df_subscribers$start_date=as.Date(df_subscribers$start_date)
+df_subscribers=df_subscribers%>%arrange(start_date)
+df_views$start_date=as.Date(df_views$start_date)
+df_views = df_views%>%arrange(start_date)
+
+# remove rows with date before 2019/06/01
+df_subscribers_cleaned = df_subscribers[df_subscribers$start_date>as.Date('2019-05-25'),]
+df_views_cleaned = df_views[df_views$start_date>as.Date('2019-05-25'),]
+
+# find columns with more than 10 consecutive NAs
+weird_columns = c()
+for (i in 2:dim(df_subscribers_cleaned)[2]){
+  # calculate the moving row averages with a window of 10 rows for each column. If there are 10 consecutive NAs, then the moving average would be NA too
+  rm_10 = rollmean(df_subscribers_cleaned[,i],k=10,na.rm=TRUE)
+  rm_10_views = rollmean(df_views_cleaned[,i],k=10,na.rm=TRUE)
+  if (is.na(sum(rm_10))|is.na(sum(rm_10_views))){
+    weird_columns=c(weird_columns,i)
+  }
+}
+# check which category these channels are from
+catg_weird = category_label[weird_columns-1] # 1 comedy, 3 commentary, 1 news, 1 travel
+# remove channels with different time frames
+df_subscribers_cleaned=df_subscribers_cleaned[,-weird_columns]
+df_views_cleaned=df_views_cleaned[,-weird_columns]
+category_label=category_label[-(weird_columns-1)]
+#----------------------------------------------------------------------------------------------------
+## replace negative weekly gained views with 0 
+df_views_cleaned[which(df_views_cleaned<0,arr.ind = TRUE)]=0
+#----------------------------------------------------------------------------------------------------
+## clean the start_date: right now different channels can have data collected on different days within a week. After cleaning, all the start_date will be 7 days apart. If for a channel, no data was recorded for a certain date, the data recorded within 6 days after this date was used to substitute the missing value. 
+# set a new set of dates that are all 7 days apart
+set_dates = seq(as.Date('2019-05-26'),as.Date('2022-05-15'),by='week')
+# initiate empty data frames
+df_subscribers_aligned=as.data.frame(matrix(nrow=length(set_dates),ncol=dim(df_subscribers_cleaned)[2]))
+df_views_aligned=as.data.frame(matrix(nrow=length(set_dates),ncol=dim(df_views_cleaned)[2]))
+colnames(df_subscribers_aligned)=colnames(df_subscribers_cleaned)
+colnames(df_views_aligned)=colnames(df_views_cleaned)
+df_subscribers_aligned$start_date=set_dates
+df_views_aligned$start_date=set_dates
+# clean data as described above
+old_dates=df_subscribers_cleaned$start_date
+for (j in 2:dim(df_subscribers_cleaned)[2]){
+  column_subscribers = df_subscribers_cleaned[,j]
+  column_views = df_views_cleaned[,j]
+  for (i in 1: length(set_dates)){
+    new_date = set_dates[i]
+    value_subscribers = column_subscribers[which(old_dates==new_date)]
+    value_views = column_views[which(old_dates==new_date)]
+    if (!is.na(value_subscribers)){
+      df_subscribers_aligned[i,j]=value_subscribers
+    }
+    else{
+      df_subscribers_aligned[i,j]=mean(column_subscribers[which(old_dates>=new_date & old_dates<new_date+7)],na.rm=TRUE)
+    }
+    if (!is.na(value_views)){
+      df_views_aligned[i,j]=value_views
+    }
+    else{
+      df_views_aligned[i,j]=mean(column_views[which(old_dates>=new_date & old_dates<new_date+7)],na.rm=TRUE)
+    }
+}
+}
+```
+
+## Pre-processing
+```{r}
+## smooth the curves with moving averages of a 8-week window
+df_subscribers_smoothed= as.data.frame(apply(df_subscribers_aligned[,-1],2,function(x) round(rollmean(x,k=9,fill=NA,na.rm=TRUE),digits=0)))
+df_subscribers_smoothed$start_date = df_subscribers_aligned$start_date
+df_subscribers_smoothed=df_subscribers_smoothed[,c(dim(df_subscribers_smoothed)[2],1:dim(df_subscribers_smoothed)[2]-1)]
+df_subscribers_smoothed=na.omit(df_subscribers_smoothed)
+
+df_views_smoothed= as.data.frame(apply(df_views_aligned[,-1],2,function(x) round(rollmean(x,k=9,fill=NA,na.rm=TRUE),digits=0)))
+df_views_smoothed$start_date = df_views_aligned$start_date
+df_views_smoothed=df_views_smoothed[,c(dim(df_views_smoothed)[2],1:dim(df_views_smoothed)[2]-1)]
+df_views_smoothed=na.omit(df_views_smoothed)
+#----------------------------------------------------------------------------------------------------
+## min_max normalization of the data
+df_subscribers_normalized=cbind(df_subscribers_smoothed$start_date,as.data.frame(lapply(df_subscribers_smoothed[,-1],scale)))
+colnames(df_subscribers_normalized)[1]='start_date'
+
+df_views_normalized=cbind(df_views_smoothed$start_date,as.data.frame(lapply(df_views_smoothed[,-1],scale)))
+colnames(df_views_normalized)[1]='start_date'
+```
+
+## EDA
+```{r, warnings=FALSE}
+## comparison before and after cleaning
+# covert tables to long version and combine weekly subscribers and views to the same data frame
+# aligned data
+df_subscribers_aligned_long=pivot_longer(df_subscribers_aligned,cols=codyko:thebucketlistfamily,names_to='name',values_to='weekly_subscribers')
+df_views_aligned_long=pivot_longer(df_views_aligned,cols=codyko:thebucketlistfamily,names_to='name',values_to='weekly_views')
+df_aligned_long = df_subscribers_aligned_long%>%inner_join(df_views_aligned_long,by=c('start_date','name'))
+df_aligned_long$category = rep(category_label,dim(df_subscribers_aligned)[1])
+# smoothed data
+df_subscribers_smoothed_long=pivot_longer(df_subscribers_smoothed,cols=codyko:thebucketlistfamily,names_to='name',values_to='weekly_subscribers')
+df_views_smoothed_long=pivot_longer(df_views_smoothed,cols=codyko:thebucketlistfamily,names_to='name',values_to='weekly_views')
+df_smoothed_long = df_subscribers_smoothed_long%>%inner_join(df_views_smoothed_long,by=c('start_date','name'))
+df_smoothed_long$category = rep(category_label,dim(df_subscribers_smoothed)[1])
+# normalized data
+df_subscribers_normalized_long=pivot_longer(df_subscribers_normalized,cols=codyko:thebucketlistfamily,names_to='name',values_to='weekly_subscribers')
+df_views_normalized_long=pivot_longer(df_views_normalized,cols=codyko:thebucketlistfamily,names_to='name',values_to='weekly_views')
+df_normalized_long = df_subscribers_normalized_long%>%inner_join(df_views_normalized_long,by=c('start_date','name'))
+df_normalized_long$category = rep(category_label,dim(df_subscribers_normalized)[1])
+#----------------------------------------------------------------------------------------------------
+# create mapping for name to color, depending on category
+MAPPING <- df_smoothed_long %>% distinct(category,name)
+color_set =  brewer.pal(n_distinct(MAPPING$category),"Set3")
+names(color_set) = unique(MAPPING$category)
+plot_cols = color_set[MAPPING$category]
+names(plot_cols) = MAPPING$name
+# aligned data plots
+p_aligned_subscribers = ggplot(df_aligned_long,mapping=aes(x=start_date, y=weekly_subscribers,col=name)) + 
+  geom_line(size=0.5) + theme(legend.position='none') + 
+  scale_color_manual(values = plot_cols)
+p_aligned_views = ggplot(df_aligned_long,mapping=aes(x=start_date, y=weekly_views,col=name)) + 
+  geom_line(size=0.5) + theme(legend.position='none') + 
+  scale_color_manual(values = plot_cols)
+# smoothed data plots
+p_smoothed_subscribers = ggplot(df_smoothed_long,mapping=aes(x=start_date, y=weekly_subscribers,col=name)) + 
+  geom_line(size=0.5) + theme(legend.position='none') + 
+  scale_color_manual(values = plot_cols)
+p_smoothed_views = ggplot(df_smoothed_long,mapping=aes(x=start_date, y=weekly_views,col=name)) + 
+  geom_line(size=0.5) + theme(legend.position='none') + 
+  scale_color_manual(values = plot_cols)
+# normalized data
+p_normalized_subscribers = ggplot(df_normalized_long,mapping=aes(x=start_date, y=weekly_subscribers,col=name)) + 
+  geom_line(size=0.5) + theme(legend.position='none') + 
+  scale_color_manual(values = plot_cols)
+p_normalized_views = ggplot(df_normalized_long,mapping=aes(x=start_date, y=weekly_views,col=name)) + 
+  geom_line(size=0.5) + theme(legend.position='none') + 
+  scale_color_manual(values = plot_cols) + scale_x_date(date_labels = "%Y %b",date_breaks = '5 month')
+```
+
+```{r}
+# save cleaned data
+setwd('..')
+write.csv(df_aligned_long,'./data/aligned_data.csv')
+write.csv(df_smoothed_long,'./data/smoothed_data.csv')
+write.csv(df_normalized_long,'./data/normalized_data.csv')
+```
+
