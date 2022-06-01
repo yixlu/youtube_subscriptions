@@ -1,0 +1,285 @@
+---
+title: "Untitled"
+author: "Zhixin Tang"
+date: "5/30/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r,echo=FALSE,include=TRUE}
+library(ggplot2)
+library(dplyr)
+library(plotly)
+library(hrbrthemes)
+library(RColorBrewer)
+```
+
+```{r,echo=FALSE,include=TRUE}
+aligned_data <- read.csv("aligned_data.csv")
+normalized_data <- read.csv("normalized_data.csv")
+smoothed_data <- read.csv("smoothed_data.csv")
+```
+
+```{r,echo=FALSE,include=TRUE}
+aligned_data[,2] <- as.Date(aligned_data[,2])
+smoothed_data[,2] <- as.Date(smoothed_data[,2])
+normalized_data[,2] <- as.Date(normalized_data[,2])
+aligned_data$category <- as.factor(aligned_data$category)
+smoothed_data$category <- as.factor(smoothed_data$category)
+normalized_data$category <- as.factor(normalized_data$category)
+aligned_data$name <- as.factor(aligned_data$name)
+smoothed_data$name <- as.factor(smoothed_data$name)
+normalized_data$name <- as.factor(normalized_data$name)
+```
+
+# Aligned_data
+```{r,echo=FALSE,include=TRUE}
+MAPPING <- aligned_data %>% distinct(category,name)
+color_set <- brewer.pal(n_distinct(MAPPING$category),"Set3")
+names(color_set) = unique(MAPPING$category)
+plot_cols = color_set[MAPPING$category]
+names(plot_cols) = MAPPING$name
+```
+## Subscribers 
+```{r,warning=FALSE,echo=FALSE,include=TRUE}
+p_aligned_subscribers <- ggplot(aligned_data,mapping=aes(x=start_date, y = weekly_subscribers, col=name))+
+  geom_line(size=0.5)+
+  scale_color_manual(values = plot_cols)+
+  theme_ipsum()
+p_aligned_subscribers <- ggplotly(p_aligned_subscribers)
+p_aligned_subscribers
+```
+## Views 
+```{r,warning=FALSE,echo=FALSE,include=TRUE}
+p_aligned_views <- ggplot(aligned_data,mapping=aes(x=start_date, y = weekly_views, col=name))+
+  geom_line(size=0.5)+
+  scale_color_manual(values = plot_cols)+
+  theme_ipsum()
+p_aligned_views <- ggplotly(p_aligned_views)
+p_aligned_views
+```
+
+# Smoothed data 
+## Subscribers
+```{r, warning=FALSE,echo=FALSE, include=TRUE}
+p_smoothed_subscribers <- ggplot(smoothed_data,mapping=aes(x=start_date, y = weekly_subscribers, col=name))+
+  geom_line(size=0.5)+
+  scale_color_manual(values = plot_cols)+
+  theme_ipsum()
+p_smoothed_subscribers <- ggplotly(p_smoothed_subscribers)
+p_smoothed_subscribers
+```
+## Views 
+```{r, warning=FALSE,echo=FALSE,include=TRUE}
+p_smoothed_views <- ggplot(smoothed_data,mapping=aes(x=start_date, y = weekly_views, col=name))+
+  geom_line(size=0.5)+
+  scale_color_manual(values = plot_cols)+
+  theme_ipsum()
+p_smoothed_views <- ggplotly(p_smoothed_views)
+p_smoothed_views
+```
+
+# Normalized data
+## Subscribers
+```{r,warning=FALSE,echo=FALSE,include=TRUE}
+p_normalized_subscribers <- ggplot(normalized_data,mapping=aes(x=start_date, y = weekly_subscribers, col=name))+
+  geom_line(size=0.5)+
+  scale_color_manual(values = plot_cols)+
+  theme_ipsum()
+p_normalized_subscribers <- ggplotly(p_normalized_subscribers)
+p_normalized_subscribers
+```
+## Views 
+```{r, warning=FALSE,echo=FALSE,include=TRUE}
+p_normalized_views <- ggplot(normalized_data,mapping=aes(x=start_date, y = weekly_views, col=name))+
+  geom_line(size=0.5)+
+  scale_color_manual(values = plot_cols)+
+  theme_ipsum()
+p_normalized_views <- ggplotly(p_normalized_views)
+p_normalized_views
+```
+
+## Seperate 
+
+### subscribers
+```{r,echo=FALSE,include=TRUE}
+levels(normalized_data$category)
+```
+```{r,warning=FALSE,echo=FALSE,include=TRUE}
+p_comedy_subscribers <- normalized_data %>% filter(category=="comedy") %>% ggplot(mapping = aes(x=start_date,y=weekly_subscribers,col=name))+
+  geom_line(size=0.5)+
+  ggtitle("Weekly subscribers of Comedy")+
+  theme_ipsum()
+p_comedy_subscribers <- ggplotly(p_comedy_subscribers)
+p_comedy_subscribers
+
+p_commentory_subscribers <- normalized_data %>% filter(category=="commentory") %>% ggplot(mapping = aes(x=start_date,y=weekly_subscribers,col=name))+
+  geom_line(size=0.5)+
+  ggtitle("Weekly subscribers of Commentory")+
+  theme_ipsum()
+p_commentory_subscribers <- ggplotly(p_commentory_subscribers)
+p_commentory_subscribers
+
+p_educational_subscribers <- normalized_data %>% filter(category=="educational") %>% ggplot(mapping = aes(x=start_date,y=weekly_subscribers,col=name))+
+  geom_line(size=0.5)+
+  ggtitle("Weekly subscribers of Education")+
+  theme_ipsum()
+p_educational_subscribers <- ggplotly(p_educational_subscribers)
+p_educational_subscribers
+
+p_fashionbeauty_subscribers <- normalized_data %>% filter(category=="fashion&beauty") %>% ggplot(mapping = aes(x=start_date,y=weekly_subscribers,col=name))+
+  geom_line(size=0.5)+
+  ggtitle("Weekly subscribers of Fashion&Beauty")+
+  theme_ipsum()
+p_fashionbeauty_subscribers <- ggplotly(p_fashionbeauty_subscribers)
+p_fashionbeauty_subscribers
+
+p_fitness_subscribers <- normalized_data %>% filter(category=="fitness") %>% ggplot(mapping = aes(x=start_date,y=weekly_subscribers,col=name))+
+  geom_line(size=0.5)+
+  ggtitle("Weekly subscribers of Fitness")+
+  theme_ipsum()
+p_fitness_subscribers <- ggplotly(p_fitness_subscribers)
+p_fitness_subscribers
+
+p_food_subscribers <- normalized_data %>% filter(category=="food") %>% ggplot(mapping = aes(x=start_date,y=weekly_subscribers,col=name))+
+  geom_line(size=0.5)+
+  ggtitle("Weekly subscribers of Food")+
+  theme_ipsum()
+p_food_subscribers <- ggplotly(p_food_subscribers)
+p_food_subscribers
+
+p_gaming_subscribers <- normalized_data %>% filter(category=="gaming") %>% ggplot(mapping = aes(x=start_date,y=weekly_subscribers,col=name))+
+  geom_line(size=0.5)+
+  ggtitle("Weekly subscribers of Gaming")+
+  theme_ipsum()
+p_gaming_subscribers <- ggplotly(p_gaming_subscribers)
+p_gaming_subscribers
+
+p_kids_subscribers <- normalized_data %>% filter(category=="kids") %>% ggplot(mapping = aes(x=start_date,y=weekly_subscribers,col=name))+
+  geom_line(size=0.5)+
+  ggtitle("Weekly subscribers of Kids")+
+  theme_ipsum()
+p_kids_subscribers <- ggplotly(p_kids_subscribers)
+p_kids_subscribers
+
+p_news_subscribers <- normalized_data %>% filter(category=="news") %>% ggplot(mapping = aes(x=start_date,y=weekly_subscribers,col=name))+
+  geom_line(size=0.5)+
+  ggtitle("Weekly subscribers of News")+
+  theme_ipsum()
+p_news_subscribers <- ggplotly(p_news_subscribers)
+p_news_subscribers
+
+p_product_review_subscribers <- normalized_data %>% filter(category=="product_review") %>% ggplot(mapping = aes(x=start_date,y=weekly_subscribers,col=name))+
+  geom_line(size=0.5)+
+  ggtitle("Weekly subscribers of Product review")+
+  theme_ipsum()
+p_product_review_subscribers <- ggplotly(p_product_review_subscribers)
+p_product_review_subscribers
+
+p_travel_subscribers <- normalized_data %>% filter(category=="travel") %>% ggplot(mapping = aes(x=start_date,y=weekly_subscribers,col=name))+
+  geom_line(size=0.5)+
+  ggtitle("Weekly subscribers of Travel")+
+  theme_ipsum()
+p_travel_subscribers <- ggplotly(p_travel_subscribers)
+p_travel_subscribers
+```
+
+### views 
+
+```{r, echo=FALSE,include=TRUE}
+p_comedy_views <- normalized_data %>% filter(category=="comedy") %>% ggplot(mapping = aes(x=start_date,y=weekly_views,col=name))+
+  geom_line(size=0.5)+
+  ggtitle("Weekly views of Comedy")+
+  theme_ipsum()
+p_comedy_views <- ggplotly(p_comedy_views)
+p_comedy_views
+
+p_commentory_views <- normalized_data %>% filter(category=="commentory") %>% ggplot(mapping = aes(x=start_date,y=weekly_views,col=name))+
+  geom_line(size=0.5)+
+  ggtitle("Weekly views of Commentory")+
+  theme_ipsum()
+p_commentory_views <- ggplotly(p_commentory_views)
+p_commentory_views
+
+p_educational_views <- normalized_data %>% filter(category=="educational") %>% ggplot(mapping = aes(x=start_date,y=weekly_views,col=name))+
+  geom_line(size=0.5)+
+  ggtitle("Weekly views of Education")+
+  theme_ipsum()
+p_educational_views <- ggplotly(p_educational_views)
+p_educational_views
+
+p_fashionbeauty_views <- normalized_data %>% filter(category=="fashion&beauty") %>% ggplot(mapping = aes(x=start_date,y=weekly_views,col=name))+
+  geom_line(size=0.5)+
+  ggtitle("Weekly views of Fashion&Beauty")+
+  theme_ipsum()
+p_fashionbeauty_views <- ggplotly(p_fashionbeauty_views)
+p_fashionbeauty_views
+
+p_fitness_views <- normalized_data %>% filter(category=="fitness") %>% ggplot(mapping = aes(x=start_date,y=weekly_views,col=name))+
+  geom_line(size=0.5)+
+  ggtitle("Weekly views of Fitness")+
+  theme_ipsum()
+p_fitness_views <- ggplotly(p_fitness_views)
+p_fitness_views
+
+p_food_views <- normalized_data %>% filter(category=="food") %>% ggplot(mapping = aes(x=start_date,y=weekly_views,col=name))+
+  geom_line(size=0.5)+
+  ggtitle("Weekly views of Food")+
+  theme_ipsum()
+p_food_views <- ggplotly(p_food_views)
+p_food_views
+
+p_gaming_views <- normalized_data %>% filter(category=="gaming") %>% ggplot(mapping = aes(x=start_date,y=weekly_views,col=name))+
+  geom_line(size=0.5)+
+  ggtitle("Weekly views of Gaming")+
+  theme_ipsum()
+p_gaming_views <- ggplotly(p_gaming_views)
+p_gaming_views
+
+p_kids_views <- normalized_data %>% filter(category=="kids") %>% ggplot(mapping = aes(x=start_date,y=weekly_views,col=name))+
+  geom_line(size=0.5)+
+  ggtitle("Weekly views of Kids")+
+  theme_ipsum()
+p_kids_views <- ggplotly(p_kids_views)
+p_kids_views
+
+p_news_views <- normalized_data %>% filter(category=="news") %>% ggplot(mapping = aes(x=start_date,y=weekly_views,col=name))+
+  geom_line(size=0.5)+
+  ggtitle("Weekly views of News")+
+  theme_ipsum()
+p_news_views <- ggplotly(p_news_views)
+p_news_views
+
+p_product_review_views <- normalized_data %>% filter(category=="product_review") %>% ggplot(mapping = aes(x=start_date,y=weekly_views,col=name))+
+  geom_line(size=0.5)+
+  ggtitle("Weekly views of Product review")+
+  theme_ipsum()
+p_product_review_views <- ggplotly(p_product_review_views)
+p_product_review_views
+
+p_travel_views <- normalized_data %>% filter(category=="travel") %>% ggplot(mapping = aes(x=start_date,y=weekly_views,col=name))+
+  geom_line(size=0.5)+
+  ggtitle("Weekly views of Travel")+
+  theme_ipsum()
+p_travel_views <- ggplotly(p_travel_views)
+p_travel_views
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
