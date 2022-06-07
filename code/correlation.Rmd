@@ -1,0 +1,333 @@
+---
+title: "correlation"
+author: "Zhixin Tang"
+date: "6/3/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyr)
+```
+
+```{r}
+subscribers_with_home <- read.csv("subscribers_with_home.csv")
+views_with_home <- read.csv("views_with_home.csv")
+```
+
+```{r, echo=FALSE,include=TRUE,message=FALSE}
+options(max.print=1000000)
+correlationTable = function(graphs) {
+  cross = matrix(nrow = length(graphs), ncol = length(graphs))
+  for(graph1Id in 1:length(graphs)){
+    graph1 = graphs[[graph1Id]]
+    print(graph1Id)
+    for(graph2Id in 1:length(graphs)) {
+      graph2 = graphs[[graph2Id]]
+      if(graph1Id == graph2Id){
+        break;
+      } else {
+        correlation = ccf(graph1, graph2, lag.max = 0,plot = FALSE)
+        cross[graph1Id, graph2Id] = correlation$acf[1]
+      }
+    }
+  }
+  cross
+}
+```
+
+```{r}
+graph_subscribers <- subscribers_with_home[,3:117]
+names(graph_subscribers) <- names(subscribers_with_home)[3:117]
+## Remove column 5(jennamarbles), 6(pewdiepie.x), 8(ryanhiga), 33(rclbeauty), 49(byrontalbott), 63(gamenewsofficial), 69(pewdiepie.y), 102(tldtoday)
+graph_subscribers <- graph_subscribers[,-c(5,6,8,33,49,63,69,102)]
+corr_subscribers <- correlationTable(graph_subscribers)
+colnames(corr_subscribers) <- names(graph_subscribers)
+rownames(corr_subscribers) <- names(graph_subscribers)
+corr_subscribers
+```
+
+```{r}
+graph_views <- views_with_home[,3:117]
+names(graph_views) <- names(views_with_home)[3:117]
+corr_views <- correlationTable(graph_views)
+colnames(corr_views) <- names(graph_views)
+rownames(corr_views) <- names(graph_views)
+corr_views
+```
+
+```{r}
+highCorr <- which(corr_subscribers > 0.95, arr.ind = TRUE)
+highCorr <- as.data.frame(highCorr)
+highCorr
+```
+
+```{r}
+highCorr_view <- which(corr_views >0.90, arr.ind = TRUE)
+highCorr_view <- as.data.frame(highCorr_view)
+highCorr_view
+```
+
+```{r}
+n <- nrow(corr_subscribers)
+m <- ncol(corr_subscribers)
+for(i in 1:n){
+  for(j in 1:n){
+    if(i==j){
+      corr_subscribers[i,j] <- 1
+    }else if(i < j){
+      corr_subscribers[i,j] <- corr_subscribers[j,i]
+    }else{
+      corr_subscribers[i,j] <- corr_subscribers[i,j]
+    }
+  }
+}
+corr_subscribers
+```
+
+```{r}
+n <- nrow(corr_views)
+m <- ncol(corr_views)
+for(i in 1:n){
+  for(j in 1:m){
+    if(i==j){
+      corr_views[i,j] <- 1
+    }else if(i < j){
+      corr_views[i,j] <- corr_views[j,i]
+    }else{
+      corr_views[i,j] <- corr_views[i,j]
+    }
+  }
+}
+corr_views
+
+```
+
+```{r}
+views <- as.matrix(corr_views)
+write.csv(views, file = "corr_views.csv")
+```
+
+
+Heatmap
+```{r}
+library(gplots)
+heatmap.2(corr_subscribers, symm = T, trace="none",key=T, revC=T)
+```
+
+```{r}
+heatmap.2(corr_views, symm = T, trace = "none", key = T, revC = T)
+```
+
+# hierarchical clustering 
+
+```{r}
+normalized_data <- read.csv("normalized_data.csv")
+normalized_data$start_date <- as.Date(normalized_data$start_date)
+normalized_data$name <- as.factor(normalized_data$name)
+normalized_data$weekly_subscribers <- as.numeric(normalized_data$weekly_subscribers)
+normalized_data$weekly_views <- as.numeric(normalized_data$weekly_views)
+normalized_data$category <- as.factor(normalized_data$category)
+```
+
+```{r}
+library(ggplot2)
+library(dplyr)
+subscribers_data <- normalized_data %>% select(weekly_subscribers, start_date, name) %>% drop_na() %>% glimpse()
+```
+```{r}
+spread_subscribers_data <- subscribers_data %>% spread(name, weekly_subscribers) %>% glimpse()
+```
+
+```{r}
+subscribers_new <- t(spread_subscribers_data[-1])
+subscirbers_dist <- dist(subscribers_new, method = "euclidean")
+fit_1 <- hclust(subscirbers_dist, method = "ward.D")
+plot(fit_1, family="Arial")
+rect.hclust(fit_1, k=4, border = "cadetblue")
+```
+
+```{r}
+library(ggdendro)
+ggdendrogram(fit_1, rotate=TRUE, theme_dendro=FALSE)+theme_minimal()+xlab("")+ylab("")
+```
+
+
+```{r}
+cluster_subscribers <- cutree(fit_1, k=4)
+cluster_subscribers_tidy <- as.data.frame(as.table(cluster_subscribers)) %>% glimpse()
+colnames(cluster_subscribers_tidy) <- c("name","cluster")
+cluster_subscribers_tidy$name <- as.character(cluster_subscribers_tidy$name)
+
+joined_subscribers_cluster <- normalized_data %>% inner_join(cluster_subscribers_tidy, by="name") %>% glimpse()
+```
+
+```{r}
+table(cluster_subscribers_tidy$cluster)
+```
+```{r}
+cluster1 <- joined_subscribers_cluster %>% filter(cluster=="1")
+ggplot(cluster1,aes(start_date, weekly_subscribers))+
+  geom_line(color="grey")+
+  theme_minimal()+
+  ggtitle("cluster 1")+
+  ylab("weekly subscribers")+
+  xlab("")+
+  geom_smooth(method = "auto", color="red", se=F, size=0.5)+
+  facet_wrap(~name)
+```
+```{r}
+cluster2 <- joined_subscribers_cluster %>% filter(cluster=="2")
+ggplot(cluster2,aes(start_date, weekly_subscribers))+
+  geom_line(color="grey")+
+  theme_minimal()+
+  ggtitle("cluster 2")+
+  ylab("weekly subscribers")+
+  xlab("")+
+  geom_smooth(method = "auto", color="red", se=F, size=0.5)+
+  facet_wrap(~name)
+```
+```{r}
+cluster3 <- joined_subscribers_cluster %>% filter(cluster=="3")
+ggplot(cluster3,aes(start_date, weekly_subscribers))+
+  geom_line(color="grey")+
+  theme_minimal()+
+  ggtitle("cluster 3")+
+  ylab("weekly subscribers")+
+  xlab("")+
+  geom_smooth(method = "auto", color="red", se=F, size=0.5)+
+  facet_wrap(~name)
+
+```
+```{r}
+cluster4 <- joined_subscribers_cluster %>% filter(cluster=="4")
+ggplot(cluster4,aes(start_date, weekly_subscribers))+
+  geom_line(color="grey")+
+  theme_minimal()+
+  ggtitle("cluster 4")+
+  ylab("weekly subscribers")+
+  xlab("")+
+  geom_smooth(method = "auto", color="red", se=F, size=0.5)+
+  facet_wrap(~name)
+```
+
+```{r}
+views_data <- normalized_data %>% select(weekly_views, start_date, name) %>% drop_na() %>% glimpse()
+```
+```{r}
+spread_views_data <- views_data %>% spread(name, weekly_views) %>% glimpse()
+```
+
+```{r}
+views_new <- t(spread_views_data[-1])
+views_dist <- dist(views_new, method = "euclidean")
+fit_2 <- hclust(views_dist, method = "ward.D")
+plot(fit_2, family="Arial")
+rect.hclust(fit_2, k=4, border = "cadetblue")
+```
+
+```{r}
+library(ggdendro)
+ggdendrogram(fit_2, rotate=TRUE, theme_dendro=FALSE)+theme_minimal()+xlab("")+ylab("")
+```
+
+
+```{r}
+cluster_views <- cutree(fit_2, k=4)
+cluster_views_tidy <- as.data.frame(as.table(cluster_views)) %>% glimpse()
+colnames(cluster_views_tidy) <- c("name","cluster")
+cluster_views_tidy$name <- as.character(cluster_views_tidy$name)
+
+joined_views_cluster <- normalized_data %>% inner_join(cluster_views_tidy, by="name") %>% glimpse()
+```
+
+```{r}
+table(cluster_views_tidy$cluster)
+```
+```{r}
+cluster_1 <- joined_views_cluster %>% filter(cluster=="1")
+ggplot(cluster_1,aes(start_date, weekly_views))+
+  geom_line(color="grey")+
+  theme_minimal()+
+  ggtitle("cluster_1")+
+  ylab("weekly views")+
+  xlab("")+
+  geom_smooth(method = "auto", color="red", se=F, size=0.5)+
+  facet_wrap(~name)
+```
+```{r}
+cluster_2 <- joined_views_cluster %>% filter(cluster=="2")
+ggplot(cluster_2,aes(start_date, weekly_views))+
+  geom_line(color="grey")+
+  theme_minimal()+
+  ggtitle("cluster_2")+
+  ylab("weekly views")+
+  xlab("")+
+  geom_smooth(method = "auto", color="red", se=F, size=0.5)+
+  facet_wrap(~name)
+```
+```{r}
+cluster_3 <- joined_views_cluster %>% filter(cluster=="3")
+ggplot(cluster_3,aes(start_date, weekly_views))+
+  geom_line(color="grey")+
+  theme_minimal()+
+  ggtitle("cluster_3")+
+  ylab("weekly views")+
+  xlab("")+
+  geom_smooth(method = "auto", color="red", se=F, size=0.5)+
+  facet_wrap(~name)
+
+```
+```{r}
+cluster_4 <- joined_views_cluster %>% filter(cluster=="4")
+ggplot(cluster_4,aes(start_date, weekly_views))+
+  geom_line(color="grey")+
+  theme_minimal()+
+  ggtitle("cluster_4")+
+  ylab("weekly views")+
+  xlab("")+
+  geom_smooth(method = "auto", color="red", se=F, size=0.5)+
+  facet_wrap(~name)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+hc_views <- hclust(dist(views_with_home[,3:120]),method = "ward.D2")
+plot(hc_views)
+rect.hclust(hc_views, k=4, border = 2:4)
+```
+
+
+
+
+$$norm\_corr(x,y)=\dfrac{\sum_{n=0}^{n-1} x[n]*y[n]}{\sqrt{\sum_{n=0}^{n-1} x[n]^2 * \sum_{n=0}^{n-1} y[n]^2}}$$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
