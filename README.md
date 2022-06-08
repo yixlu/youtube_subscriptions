@@ -14,4 +14,11 @@ Steps for collecting url and name of the Youtuber of interest:
   *  E.g. url: https://web.archive.org/web/20220521004032/https://socialblade.com/youtube/user/pamelarf1/monthly, name: pamelarf1.
 
 ## Web scraping
-Under code, there is a scraper_batch.py file which could be used to batch scraping the websites after we collected the urls and names and compile them into the library.csv file under data. If you want to try scraping a single website, you can use the scraper_revised.py file. It will ask you to input the url and name of a single website you want to scrape. To avoid any conflicts, please do not push any scraped data to this repo until we finalized the list of urls. 
+Under code, there is a scraper_batch.py file which was used to batch scraping the websites after we collected the urls and names and compile them into the library.csv file under data. If you want to try scraping a single website, you can use the scraper_revised.py file. It will ask you to input the url and name of a single website you want to scrape. To avoid any conflicts, please do not push any scraped data to this repo until we finalized the list of urls. 
+
+## Data cleaning and analysis
+* The R code used for data cleaning and analysis could be found under code -> data_cleaning_analysis_R.Rmd, and the Python code in code -> data_analysis_python.ipynb.
+* The raw scraped data organized in different folders based on YouTube channel categories could be found under data. Also, we included the cleaned data in the same "data" folder.
+
+## Report
+A PDF version of the final report can be found under report.
