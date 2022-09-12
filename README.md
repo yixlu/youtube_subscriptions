@@ -1,5 +1,5 @@
 # youtube_subscriptions
-STA260 final project: YouTubers' weekly subscriptions and video views since the Covid19 pandemic
+YouTubers' weekly subscriptions and video views since the Covid19 pandemic
 
 ## Setup
 Steps for collecting url and name of the Youtuber of interest:
